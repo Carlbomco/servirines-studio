@@ -16,22 +16,49 @@ except Exception as e:
     st.error(f"Error al establecer la conexión con Google Sheets: {e}")
     st.stop()
 
-# Función optimizada con caché para leer datos sin sobrecargar la API
-@st.cache_data(ttl=60)  # Los datos se refrescan automáticamente cada 60 segundos
+# ==========================================
+# REEMPLAZA TU SECCIÓN DE CARGA DE DATOS POR ESTA:
+# ==========================================
+
+# Función optimizada con caché para leer datos
+@st.cache_data(ttl=10)  # Bajamos a 10 segundos para hacer pruebas en tiempo real
 def load_data(sheet_name):
     return conn.read(worksheet=sheet_name)
 
-# Cargar los datos de las tres pestañas estructurales
+# Inicializar DataFrames vacíos por seguridad
+df_sedes = pd.DataFrame()
+# Columnas por defecto en caso de que falle la carga inicial
+df_ventas = pd.DataFrame(columns=["Marca_Temporal", "Sede", "Asesor", "Tecnico", "Placa", "Marca", "Modelo", "Fecha", "Factura_Servirines", "Valor_Total", "Orden_Trabajo_Sede", "Año", "Mes"])
+df_bitacora = pd.DataFrame(columns=["Fecha", "Sede", "Vehiculos_Ingresados", "Rines_No_Autorizados", "Placas_No_Autorizadas", "Marca", "Estado_Seguimiento"])
+
+st.sidebar.markdown("### 🔍 Estado de la Base de Datos")
+
+# Probar la carga de 'Sedes'
 try:
     df_sedes = load_data("Sedes")
-    df_ventas = load_data("Ventas")
-    df_bitacora = load_data("Bitacora")
+    st.sidebar.success("✅ Pestaña 'Sedes' conectada")
 except Exception as e:
-    st.error(f"Error al leer las pestañas. Asegúrate de que los nombres en Google Sheets sean exactamente 'Sedes', 'Ventas' y 'Bitacora'. Detalle: {e}")
-    st.stop()
+    st.error(f"❌ Error en la pestaña 'Sedes': Asegúrate de que se llame exactamente así y tenga datos. Detalle: {e}")
 
-# Crear pestañas de navegación en la interfaz de usuario
-tab_registro, tab_bitacora_ui, tab_visualizacion = st.tabs(["📝 Registrar Venta", "📓 Bitácora Diaria", "📊 Visualizar Tablas"])
+# Probar la carga de 'Ventas'
+try:
+    df_ventas_raw = load_data("Ventas")
+    if not df_ventas_raw.empty:
+        df_ventas = df_ventas_raw
+    st.sidebar.success("✅ Pestaña 'Ventas' conectada")
+except Exception as e:
+    st.error(f"❌ Error en la pestaña 'Ventas': Puede estar totalmente vacía o mal nombrada. Detalle: {e}")
+
+# Probar la carga de 'Bitacora'
+try:
+    df_bitacora_raw = load_data("Bitacora")
+    if not df_bitacora_raw.empty:
+        df_bitacora = df_bitacora_raw
+    st.sidebar.success("✅ Pestaña 'Bitacora' conectada")
+except Exception as e:
+    st.error(f"❌ Error en la pestaña 'Bitacora': Puede estar totalmente vacía o mal nombrada. Detalle: {e}")
+
+# ==========================================
 
 # =========================================================================
 # PESTAÑA 1: REGISTRO DE VENTAS
